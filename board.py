@@ -2,15 +2,12 @@ import random
 import termtables
 import tty, sys, termios
 import os
+from tqdm import tqdm
 
 
 filedescriptors = termios.tcgetattr(sys.stdin)
 tty.setcbreak(sys.stdin)
 
-def chunks(lst: list, n: int):
-    # Yield successive n-sized chunks from lst.
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
 
 def mhd(start: tuple[int, int], end: tuple[int, int]) -> int:
     # Calculates Manhattan distance from two (x, y) coordinates
@@ -59,10 +56,7 @@ class Board:
         self.min_walls: int = min_walls
         self.max_walls: int = max_walls
         self.path: list[tuple[int, int]] = []
-
-        _numbered_board: list[list[int]] = list(chunks(list(range(self.dimensions ** 2)), self.dimensions))
-        _numbered_board.reverse()
-        self.numbered_board: list[list[int]] = _numbered_board
+        self.target: int = random.randint(0, 1) # Chooses whether the target will be target 1 or target 0
 
         self.generate_board()
 
@@ -83,13 +77,18 @@ class Board:
         self.num_walls: int = random.randint(self.min_walls, self.max_walls)
 
         start = (random.randrange(self.dimensions), random.randrange(self.dimensions))
-        end = (random.randrange(self.dimensions), random.randrange(self.dimensions))
+        target_0 = (random.randrange(self.dimensions), random.randrange(self.dimensions))
+        target_1 = (random.randrange(self.dimensions), random.randrange(self.dimensions))
 
-        while end == start:
+        while target_0 == start:
             # If end == start, regenerate end point until end != start
-            end = (random.randrange(self.dimensions), random.randrange(self.dimensions))
+            target_0 = (random.randrange(self.dimensions), random.randrange(self.dimensions))
+        
+        while target_1 == start or target_1 == target_0:
+            # If end == start, regenerate end point until end != start
+            target_1 = (random.randrange(self.dimensions), random.randrange(self.dimensions))
 
-        excluded: set[tuple[int, int]] = set([start, end])
+        excluded: set[tuple[int, int]] = set([start, target_0, target_1])
         walls: list[tuple[int, int]] = []
         
         while len(walls) < self.num_walls:
@@ -102,8 +101,15 @@ class Board:
 
         self.start_cell: Cell = self.get_cell_by_coordinates(start)
         self.start_cell.value = 's'
-        self.end_cell: Cell = self.get_cell_by_coordinates(end)
-        self.end_cell.value = 'e'
+        self.target_0_cell: Cell = self.get_cell_by_coordinates(target_0)
+        self.target_0_cell.value = '0'
+        self.target_1_cell: Cell = self.get_cell_by_coordinates(target_1)
+        self.target_1_cell.value = '1'
+
+        if self.target == 0:
+            self.end_cell = self.target_0_cell
+        else:
+            self.end_cell = self.target_1_cell
         
         for wall in walls:
             wall_cell: Cell = self.get_cell_by_coordinates(wall)
@@ -204,7 +210,7 @@ class Board:
                 continue
 
             # Make sure walkable terrain
-            if self.get_cell_by_coordinates(node_position).value not in [' ', 'e']:
+            if self.get_cell_by_coordinates(node_position).value not in [' ', 'e', '0', '1']:
                 continue
 
             new_node = self.get_cell_by_coordinates(node_position)
@@ -242,19 +248,19 @@ class Board:
         return label
     
     def save_data(self):
-        with open("data_pathfinding.csv", "a") as file:
-            file.write(str(self.board) + '@' + self.label + '@1' + '\n')
+        with open("data_pathfinding_target.csv", "a") as file:
+            file.write(str(self.board) + '@' + self.label + '@' + str(self.target) + '\n')
 
 
 
 if __name__ == '__main__':
-    for i in range(1000000):
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print(i)
+    for i in tqdm(range(5000000)):
+        #os.system('cls' if os.name == 'nt' else 'clear')
+        #print(i)
         board = Board(dimensions=6, min_walls=3, max_walls=10)
-        board.print()
+        #board.print()
         path = board.astar()
-        print(path)
-        print(board.label)
+        #print(path)
+        #print(board.label)
         if board.label:
             board.save_data()
