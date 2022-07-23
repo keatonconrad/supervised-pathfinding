@@ -29,8 +29,6 @@ model.add(Dense(512, activation='relu'))
 model.add(Dense(512, activation='relu'))
 model.add(Dense(512, activation='relu'))
 model.add(Dense(512, activation='relu'))
-model.add(Dense(512, activation='relu'))
-model.add(Dense(512, activation='relu'))
 model.add(Dense(4, activation='softmax'))
 
 adam = keras.optimizers.Adam(0.001)

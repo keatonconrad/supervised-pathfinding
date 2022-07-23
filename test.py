@@ -40,8 +40,6 @@ def coord(num):
 
 
 def dist(n, m):
-    #xn, yn = coord(n, board)
-    #xm, ym = coord(m, board)
     return abs(n[0] - m[0]) + abs(n[1] - m[1])
 
 
