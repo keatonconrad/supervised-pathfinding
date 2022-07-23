@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 
-data = pd.read_csv('data8x8.csv', sep='@').sample(frac=1)
+data = pd.read_csv('data_pathfinding.csv', sep='@').sample(frac=1)
 
 def process(t):
   new = eval(t.replace("' '", "0").replace("'s'", "1").replace("'e'", "2").replace("'x'", "3"))

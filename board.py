@@ -109,7 +109,7 @@ class Board:
             wall_cell: Cell = self.get_cell_by_coordinates(wall)
             wall_cell.value = 'x'
         
-    def generate_board(self):
+    def generate_board(self) -> list[list[int]]:
         self.generate_base_board()
         self.fill_board()
         return self.board
@@ -121,11 +121,11 @@ class Board:
                 if cell.coordinates == coordinates:
                     return cell
     
-    def print(self):
+    def print(self) -> str:
         termtables.print(self.board)
 
     
-    def astar(self):
+    def astar(self) -> list[tuple[int, int]]:
         """Returns a list of tuples as a path from the given start to the given end in the given maze"""
 
         # Initialize both open and closed list
@@ -191,7 +191,7 @@ class Board:
                 # Add the child to the open list
                 open_list.append(child)
 
-    def get_node_children(self, current_node):
+    def get_node_children(self, current_node) -> list[Cell]:
         # Generate children
         children = []
         for new_position in [(0, -1), (0, 1), (-1, 0), (1, 0)]: # Adjacent squares
@@ -227,7 +227,7 @@ class Board:
             return list(_gen())[::-1]
 
     @property
-    def label(self):
+    def label(self) -> str:
         label = None
         if self.path:
             move = self.path[1]
