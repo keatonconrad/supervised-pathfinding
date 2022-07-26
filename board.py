@@ -2,6 +2,7 @@ import random
 import termtables
 import tty, sys, termios
 import os
+from tqdm import tqdm
 
 
 filedescriptors = termios.tcgetattr(sys.stdin)
@@ -248,11 +249,11 @@ class Board:
 
 
 if __name__ == '__main__':
-    for i in range(1000000):
-        os.system('cls' if os.name == 'nt' else 'clear')
-        print(i)
-        board = Board(dimensions=6, min_walls=3, max_walls=10)
-        board.print()
+    for i in tqdm(range(5000000)):
+        #os.system('cls' if os.name == 'nt' else 'clear')
+        #print(i)
+        board = Board(dimensions=10, min_walls=3, max_walls=40)
+        #board.print()
         path = board.astar()
         print(path)
         print(board.label)
