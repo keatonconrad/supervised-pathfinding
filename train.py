@@ -5,7 +5,7 @@ import tensorflow as tf
 import keras
 from keras.layers import Dense, Conv1D
 
-data = pd.read_csv("data_pathfinding_target.csv", sep="@").sample(frac=1)
+data = pd.read_csv("data_pathfinding_target10.csv", sep="@").sample(frac=1)
 
 
 def process(t):
@@ -26,9 +26,10 @@ data["flat"] = [
 
 y_data = np.asarray(pd.get_dummies(data["label"])).astype("float32")
 
-state_input = keras.Input(shape=(6, 6))
-x = Conv1D(32, 2, activation="relu")(state_input)
-x = Dense(512, activation="relu")(x)
+state_input = keras.Input(shape=(10, 10))
+# x = Conv1D(96, 6, activation="relu")(state_input)
+x = Dense(512, activation="relu")(state_input)
+x = keras.layers.Flatten()(x)
 x = Dense(512, activation="relu")(x)
 x = Dense(512, activation="relu")(x)
 x = tf.keras.layers.Flatten()(x)
@@ -37,9 +38,9 @@ target_input = keras.Input(shape=(1))
 y = Dense(512, activation="relu")(target_input)
 
 concat = tf.keras.layers.Concatenate()([x, y])
-z = Dense(512, activation="relu")(concat)
-z = Dense(512, activation="relu")(z)
-z = Dense(512, activation="relu")(z)
+z = Dense(1024, activation="relu")(concat)
+z = Dense(1024, activation="relu")(z)
+z = Dense(1024, activation="relu")(z)
 outputs = Dense(4, activation="softmax")(z)
 
 model = keras.Model(inputs=[state_input, target_input], outputs=outputs)
