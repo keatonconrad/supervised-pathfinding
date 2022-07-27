@@ -3,6 +3,7 @@ import termtables
 import tty, sys, termios
 import os
 from tqdm import tqdm
+from typing import Optional
 
 
 filedescriptors = termios.tcgetattr(sys.stdin)
@@ -60,6 +61,7 @@ class Board:
         self.min_walls: int = min_walls
         self.max_walls: int = max_walls
         self.path: list[tuple[int, int]] = []
+        self.next_start_coords: tuple[int, int] = None
 
         _numbered_board: list[list[int]] = list(chunks(list(range(self.dimensions ** 2)), self.dimensions))
         _numbered_board.reverse()
@@ -227,35 +229,49 @@ class Board:
         else:
             return list(_gen())[::-1]
 
-    @property
-    def label(self) -> str:
+
+    def label(self, move: tuple[int, int]) -> str:
         label = None
         if self.path:
-            move = self.path[1]
             if move == self.start_cell.left:
+                self.next_start_coords = self.start_cell.left
                 label = 'left'
             elif move == self.start_cell.right:
+                self.next_start_coords = self.start_cell.right
                 label = 'right'
             elif move == self.start_cell.down:
+                self.next_start_coords = self.start_cell.down
                 label = 'down'
             elif move == self.start_cell.up:
+                self.next_start_coords = self.start_cell.up
                 label = 'up'
         return label
-    
-    def save_data(self):
-        with open("data_pathfinding.csv", "a") as file:
-            file.write(str(self.board) + '@' + self.label + '@1' + '\n')
+
+    def move(self):
+        self.start_cell.value = ' ' # Old start cell
+
+        self.start_cell: Cell = self.get_cell_by_coordinates(self.next_start_coords)
+        self.start_cell.value = 's'
+
+    def run(self):
+        path = self.astar()
+        if not path:
+            return
+        for step in path[1:]:
+            label = self.label(step)
+            if not label:
+                break
+            
+            self.save_data(label)
+            self.move()
+
+    def save_data(self, label: str):
+        with open("data_full_path.csv", "a") as file:
+            file.write(str(self.board) + '@' + label + '\n')
 
 
 
 if __name__ == '__main__':
     for i in tqdm(range(5000000)):
-        #os.system('cls' if os.name == 'nt' else 'clear')
-        #print(i)
-        board = Board(dimensions=10, min_walls=3, max_walls=40)
-        #board.print()
-        path = board.astar()
-        print(path)
-        print(board.label)
-        if board.label:
-            board.save_data()
+        board = Board(dimensions=6, min_walls=2, max_walls=12)
+        board.run()
