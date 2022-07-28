@@ -1,9 +1,8 @@
 import random
 import termtables
 import tty, sys, termios
-import os
 from tqdm import tqdm
-from typing import Optional
+from enum import Enum
 
 
 filedescriptors = termios.tcgetattr(sys.stdin)
@@ -21,6 +20,14 @@ def mhd(start: tuple[int, int], end: tuple[int, int]) -> int:
     return abs(start[0] - end[0]) + abs(start[1] - end[1])
 
 
+class CellType(Enum):
+    start = 0
+    end = 1
+    wall = 2
+    poi = 3
+    other = 4
+
+
 class Cell:
     def __init__(self, coordinates: tuple[int, int], board_dimensions: int):
         self.g: int = 0
@@ -29,6 +36,8 @@ class Cell:
         self.coordinates: tuple[int, int] = coordinates
         self.value: str = ' '
         self.parent: Cell = None
+        self.interest: float = 0.0
+        self.type: CellType = CellType.other
 
         self.left = (self.coordinates[0]-1, self.coordinates[1])
         if self.left[0] < 0:
@@ -45,7 +54,13 @@ class Cell:
 
         
     def __repr__(self):
-        return "'" + self.value + "'"
+        if self.type == CellType.start:
+            return "-1.0"
+        if self.type == CellType.end:
+            return "-2.0"
+        if self.type == CellType.wall:
+            return "-3.0"
+        return str(float(self.interest))
     
     def __str__(self):
         return self.value
@@ -53,15 +68,18 @@ class Cell:
 
 class Board:
   
-    def __init__(self, dimensions: int, min_walls: int = 0, max_walls: int = 10):
+    def __init__(self, dimensions: int, min_walls: int = 0, max_walls: int = 10, min_pois: int = 1, max_pois: int = 4, mode: str = 'interest'):
         assert min_walls <= max_walls
         assert max_walls < dimensions ** 2 - 2
         
         self.dimensions: int = dimensions
         self.min_walls: int = min_walls
         self.max_walls: int = max_walls
+        self.min_pois: int = min_pois
+        self.max_pois: int = max_pois
         self.path: list[tuple[int, int]] = []
         self.next_start_coords: tuple[int, int] = None
+        self.mode: str = mode
 
         _numbered_board: list[list[int]] = list(chunks(list(range(self.dimensions ** 2)), self.dimensions))
         _numbered_board.reverse()
@@ -84,6 +102,7 @@ class Board:
     
     def fill_board(self):
         self.num_walls: int = random.randint(self.min_walls, self.max_walls)
+        self.num_pois: int = random.randint(self.min_pois, self.max_pois) # Number of points of interest
 
         start = (random.randrange(self.dimensions), random.randrange(self.dimensions))
         end = (random.randrange(self.dimensions), random.randrange(self.dimensions))
@@ -102,19 +121,64 @@ class Board:
             else:
                 walls.append(new_wall)
         
+        pois: list[tuple[int, int]] = []
+        
+        while len(pois) < self.num_pois:
+            new_poi = (random.randrange(self.dimensions), random.randrange(self.dimensions))
+            if new_poi in walls or new_poi in pois or new_poi in excluded:
+                continue
+            else:
+                pois.append(new_poi)
+        
 
         self.start_cell: Cell = self.get_cell_by_coordinates(start)
         self.start_cell.value = 's'
+        self.start_cell.type = CellType.start
         self.end_cell: Cell = self.get_cell_by_coordinates(end)
         self.end_cell.value = 'e'
+        self.end_cell.type = CellType.end
         
         for wall in walls:
             wall_cell: Cell = self.get_cell_by_coordinates(wall)
             wall_cell.value = 'x'
+            wall_cell.type = CellType.wall
+        
+        for poi in pois:
+            poi_cell: Cell = self.get_cell_by_coordinates(poi)
+            poi_cell.interest = random.random() * 10 # Sets poi interest to random float between [0, 10)
+            poi_cell.type = CellType.poi
+
+
+    def calculate_interest_values(self):
+        other_cells = []
+        for column in self.board:
+            for cell in column:
+                if cell.type == CellType.other:
+                    other_cells.append(cell)
+        
+        for cell in other_cells:
+            if cell.left:
+                left = self.get_cell_by_coordinates(cell.left)
+                if left.type == CellType.poi:
+                    cell.interest += left.interest / 2
+            if cell.right:
+                right = self.get_cell_by_coordinates(cell.right)
+                if right.type == CellType.poi:
+                    cell.interest += right.interest / 2
+            if cell.down:
+                down = self.get_cell_by_coordinates(cell.down)
+                if down.type == CellType.poi:
+                    cell.interest += down.interest / 2
+            if cell.up:
+                up = self.get_cell_by_coordinates(cell.up)
+                if up.type == CellType.poi:
+                    cell.interest += up.interest / 2
+        
         
     def generate_board(self) -> list[list[int]]:
         self.generate_base_board()
         self.fill_board()
+        self.calculate_interest_values()
         return self.board
 
     
@@ -182,9 +246,12 @@ class Board:
 
                 # Create the f, g, and h values
                 child.g = current_node.g + 1
-                child.h = ((child.coordinates[0] - self.end_cell.coordinates[0]) ** 2) + ((child.coordinates[1] - self.end_cell.coordinates[1]) ** 2)
-                #child.h = mhd(child.coordinates, self.end_cell.coordinates)
-                child.f = child.g + child.h
+                #child.h = ((child.coordinates[0] - self.end_cell.coordinates[0]) ** 2) + ((child.coordinates[1] - self.end_cell.coordinates[1]) ** 2)
+                child.h = mhd(child.coordinates, self.end_cell.coordinates)
+                if self.mode == 'interest':
+                    child.f = child.g + child.h + 20 - child.interest
+                else:
+                    child.f = child.g + child.h
 
                 # Child is already in the open list
                 for open_node in open_list:
@@ -266,12 +333,14 @@ class Board:
             self.move()
 
     def save_data(self, label: str):
-        with open("data_full_path.csv", "a") as file:
-            file.write(str(self.board) + '@' + label + '\n')
+        mode_bin = 1 if self.mode == 'interest' else 0
+        with open("data_interest3.csv", "a") as file:
+            file.write(str(self.board) + '@' + label + '@' + str(mode_bin) + '\n')
 
 
 
 if __name__ == '__main__':
-    for i in tqdm(range(5000000)):
-        board = Board(dimensions=6, min_walls=2, max_walls=12)
+    for i in tqdm(range(2000000)):
+        mode = random.choice(['distance', 'interest'])
+        board = Board(dimensions=6, min_walls=2, max_walls=10, min_pois=2, max_pois=8, mode=mode)
         board.run()
