@@ -8,7 +8,7 @@ In the interest mode, the pathfinder takes into account how "interesting" each c
 
 If we represent the distance mode as a 0 and the interest mode as a 1, this value can now be thought of as the model's "curiosity".
 
-Running `python3 board.py` will alternate path generation between each mode and save the data to `data.csv`. Running `python3 train.py` afterwards will process the data and train the neural network.
+Running `python3 board.py` will generate a random 2D grid/board, alternate path generation between each mode, and save the data to `data.csv`. Running `python3 train.py` afterwards will process the data and train the neural network.
 
 A lookback of 4 was used to provide context to the model. After training, an accuracy of at least 99% is expected.
 
