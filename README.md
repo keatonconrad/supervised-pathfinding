@@ -1,6 +1,6 @@
 # 2D Pathfinding with Supervised Learning
 
-This is an independent research project designed to experiement with influencing path creation in 2D grid space based on outside factors, such as the "curiosity" of the model or its "interest" in specific landmarks on the grid.
+This is an independent research project designed to experiment with influencing path creation in 2D grid space based on outside factors, such as the "curiosity" of the model or its "interest" in specific landmarks on the grid.
 
 There are two modes to this data collection: distance and interest. In the distance mode, the algorithm will simply compute the shortest distance using A* and save that path data for model training.
 
